@@ -65,9 +65,10 @@ if [ "$(uname -s)" = "Darwin" ]; then
     fi
 fi
 
-# Remove skills
+# Remove skills. The bare "$CLAUDE_SKILLS_DIR"/smith path catches stale installs
+# from before the smith → smith-speckit rename.
 REMOVED_SKILLS=0
-for skill in "$CLAUDE_SKILLS_DIR"/smith "$CLAUDE_SKILLS_DIR"/smith-*; do
+for skill in "$CLAUDE_SKILLS_DIR"/smith "$CLAUDE_SKILLS_DIR"/smith-* "$CLAUDE_SKILLS_DIR"/conejo-smith; do
     [ -d "$skill" ] || continue
     rm -rf "$skill"
     REMOVED_SKILLS=$((REMOVED_SKILLS + 1))
@@ -77,9 +78,8 @@ ok "Removed $REMOVED_SKILLS skills"
 # Remove hooks
 SMITH_HOOKS=(
     file-change-logger.sh grade-response.sh lint-on-save.sh
-    security-guard-bash.sh security-guard-files.sh
     session-end-review.sh session-start-logger.sh
-    subagent-vault-writeback.sh task-router.sh
+    subagent-vault-writeback.sh task-router.sh metrics-tracker.sh
 )
 REMOVED_HOOKS=0
 for hook in "${SMITH_HOOKS[@]}"; do

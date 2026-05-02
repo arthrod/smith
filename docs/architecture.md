@@ -20,13 +20,13 @@ Smith
 
 Skills are directories installed to `~/.claude/skills/`. Each skill directory contains a `SKILL.md` file with YAML frontmatter that defines the skill's name, description, and trigger patterns.
 
-The main `smith` skill (`~/.claude/skills/smith/`) is the largest and contains subdirectories:
+The main SpecKit-init skill `smith-speckit` (`~/.claude/skills/smith-speckit/`, formerly `smith`) is the largest and contains subdirectories:
 
 - **agents/** -- Sub-agent definitions for specialized tasks (analysis, implementation, review)
 - **templates/** -- Markdown templates for specs, plans, tasks, reports, and other artifacts
 - **scripts/** -- Bash scripts used by skills during workflow execution
 
-All other skills (`smith-new`, `smith-debug`, `smith-bugfix`, etc.) are standalone directories that reference the main smith skill's templates and agents as needed.
+All other skills (`smith-new`, `smith-debug`, `smith-bugfix`, etc.) are standalone directories that reference the smith-speckit skill's templates and agents as needed. The `conejo-smith` skill is the recommended entry point — it installs project-local hooks and the rubric, then delegates to `smith-speckit` for the SpecKit interview.
 
 ### SKILL.md Frontmatter
 

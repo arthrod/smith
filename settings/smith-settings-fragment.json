@@ -45,18 +45,6 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/security-guard-bash.sh" }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/security-guard-files.sh" }
-        ]
-      },
-      {
         "matcher": "Task",
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/task-router.sh" }

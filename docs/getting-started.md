@@ -17,19 +17,20 @@ Smith is a set of Claude Code skills, hooks, and a scheduler that adds structure
 Clone the repo and run the installer:
 
 ```bash
-git clone https://github.com/ATTCKDigital/smith.git
+git clone https://github.com/arthrod/smith.git
 cd smith
 bash scripts/install.sh
 ```
 
 The installer will:
 
-1. Copy all 25 skills to `~/.claude/skills/`
-2. Copy all 8 hooks to `~/.claude/hooks/`
-3. Merge hook definitions into `~/.claude/settings.json`
-4. Optionally install the scheduler LaunchAgent (macOS only)
+1. Copy all 27 skills to `~/.claude/skills/`
+2. Bundle 7 hooks + the project-local settings fragment + the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (NOT into `~/.claude/hooks/`)
+3. Optionally install the scheduler LaunchAgent (macOS only)
 
-To confirm the installation succeeded, open Claude Code in any project and type `/smith-help`.
+`~/.claude/settings.json` and `~/.claude/CLAUDE.md` are **not modified** by the installer. To wire hooks and the rubric into a specific project, run `/conejo-smith` inside that project — it's the new entry point.
+
+To confirm the installation succeeded, open Claude Code in any project and type `/smith-help` (or `/conejo-smith`).
 
 ### Uninstalling
 
@@ -83,7 +84,8 @@ The vault is local-only. Nothing is sent to any external service.
 
 | Command | What it does |
 |---------|-------------|
-| `/smith` | Initialize Smith on a new project |
+| `/conejo-smith` | Initialize Smith on a new project (project-local hooks + settings + CLAUDE.md + SpecKit) |
+| `/smith-speckit` | Legacy SpecKit-only init (formerly `/smith`; no hooks; assumes hooks are wired elsewhere) |
 | `/smith-new` | Start a new feature workflow |
 | `/smith-bugfix` | Quick autonomous fix for bugs |
 | `/smith-debug` | Diagnostic workflow (read-only) |

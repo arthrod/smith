@@ -12,7 +12,7 @@ Migrate existing feature spec folders from `specs/<NNN-feature>/` into the syste
 
 ## Prerequisites
 
-- `.specify/systems/` must exist with system spec folders (created by Phase 1B setup or `/smith`)
+- `.specify/systems/` must exist with system spec folders (created by Phase 1B setup or `/conejo-smith`)
 - System spec files must be present at `.specify/systems/system-*/spec.md` for system detection to work
 
 ## Behavior

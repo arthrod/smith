@@ -82,7 +82,8 @@ REPORTS
   /smith-report           Generate client-facing project report
 
 PROJECT
-  /smith                  Bootstrap a new project with Smith workflow
+  /conejo-smith           Bootstrap a project with Smith (project-local hooks + rubric + SpecKit) — RECOMMENDED
+  /smith-speckit          Legacy SpecKit-only init (formerly /smith); use only if hooks were wired elsewhere
   /smith-constitution     Create or update project constitution
   /smith-taskstoissues    Convert tasks.md to GitHub Issues
   /smith-migrate-specs    Migrate flat specs into system-based hierarchy

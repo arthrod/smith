@@ -164,9 +164,9 @@ Session logging is handled automatically by Smith vault hooks.
 
 - [ ] The response does NOT manually create session log files in
       `.smith/vault/sessions/`.
-- [ ] If the vault structure does not exist in the project, either `/smith`
-      was invoked or `.smith/vault/` was created manually with the standard
-      subdirectories (sessions, agents, queue, bank).
+- [ ] If the vault structure does not exist in the project, either `/conejo-smith`
+      (or legacy `/smith-speckit`) was invoked, or `.smith/vault/` was created
+      manually with the standard subdirectories (sessions, agents, queue, bank).
 
 ### Rule applies when:
 The session involves file operations or a Smith workflow.

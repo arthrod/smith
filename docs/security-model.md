@@ -35,7 +35,7 @@ Hooks are bash scripts that Claude Code executes automatically at specific lifec
 |-------|--------------|----------------|
 | SessionStart | Claude Code session begins | session-start-logger |
 | Stop | Claude Code session ends | session-end-review |
-| PreToolUse | Before Claude executes a tool call | security-guard-bash, security-guard-files, task-router |
+| PreToolUse | Before Claude executes a tool call | task-router |
 | PostToolUse | After Claude executes a tool call | file-change-logger, lint-on-save |
 | SubagentStop | When a sub-agent completes | subagent-vault-writeback |
 
@@ -43,35 +43,32 @@ See [Hooks Reference](hooks.md) for full details on each hook.
 
 ---
 
-## Security Guards
+## Security Guards (removed in this fork)
 
-Smith ships two security guard hooks that implement a deny-by-default approach:
+The upstream `security-guard-bash.sh` and `security-guard-files.sh` hooks have been **removed**. They were too aggressive — blocking legitimate dev work like writing config files, reading env vars during debugging, or removing test fixtures.
 
-### security-guard-bash.sh (PreToolUse, Bash)
+If you want comparable protection, use Claude Code's native `permissions.deny` rules in `<project>/.claude/settings.json`. They are narrower, scoped to the project, and visible to the user before tool execution. Examples:
 
-Inspects every Bash command before execution and blocks patterns that are commonly dangerous or leak sensitive data:
+```json
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(env:*)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(~/.ssh/**)",
+      "Write(.env)",
+      "Write(.env.*)"
+    ]
+  }
+}
+```
 
-- Destructive filesystem operations (`rm -rf /`, `rm -rf ~`, etc.)
-- Environment variable dumps that could expose secrets
-- Direct echoing of secret/credential variables
-- Commands that attempt to disable or bypass other hooks
-
-The guard uses a blocklist of known-dangerous patterns. Commands not matching any blocked pattern are allowed through.
-
-### security-guard-files.sh (PreToolUse, Write/Edit)
-
-Inspects every file write or edit before execution and blocks writes to sensitive file paths:
-
-- `.env` files and variants (`.env.local`, `.env.production`, etc.)
-- Credential files (`credentials.json`, `*.pem`, `*.key`)
-- SSH configuration and keys (`~/.ssh/*`)
-- Claude Code's own configuration files
-
-The guard uses an allowlist approach for the vault directory (writes to `.smith/vault/` are always permitted) and a blocklist for known sensitive paths.
-
-### Customizing guards
-
-Both guards are plain bash scripts in `~/.claude/hooks/`. You can edit them to add or remove patterns. If you modify them, keep the deny-by-default philosophy: block first, allow explicitly.
+`deny` supersedes `allow` and is enforced by Claude Code itself, not by a hook script.
 
 ---
 
@@ -89,16 +86,14 @@ The scheduler (`~/.smith/scheduler/smith-scheduler.sh`) enables autonomous overn
 
 ## What to Audit Before Enabling
 
-Before enabling the scheduler or relying on the security guards, review these three files:
+Before enabling the scheduler, review:
 
-1. **`~/.claude/hooks/security-guard-bash.sh`** -- Review the blocklist patterns. Confirm they cover the commands you consider dangerous in your environment. Add any project-specific patterns.
+1. **`<project>/.claude/settings.json`** — confirm any `permissions.deny` rules you added cover the commands and files you consider dangerous in this project.
 
-2. **`~/.claude/hooks/security-guard-files.sh`** -- Review the blocked file paths. Add any project-specific sensitive files (database configs, API key files, deployment manifests with secrets).
-
-3. **`~/.smith/scheduler/smith-scheduler.sh`** -- Review the task selection logic and worktree creation. Confirm you are comfortable with the scheduler creating branches and worktrees in your registered projects.
+2. **`~/.smith/scheduler/smith-scheduler.sh`** — review the task selection logic and worktree creation. Confirm you are comfortable with the scheduler creating branches and worktrees in your registered projects.
 
 ---
 
 ## Reporting Vulnerabilities
 
-If you discover a security vulnerability in Smith, do not open a public issue. Instead, email **tech@attck.com** with a description of the vulnerability, steps to reproduce, and any relevant log output. See [SECURITY.md](../SECURITY.md) for the full disclosure policy.
+If you discover a security vulnerability in this fork, do not open a public issue. Instead, email **arthursrodrigues@gmail.com** with a description of the vulnerability, steps to reproduce, and any relevant log output. See [SECURITY.md](../SECURITY.md) for the full disclosure policy.

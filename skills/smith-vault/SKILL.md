@@ -66,4 +66,4 @@ When invoked with no arguments, show a summary dashboard:
 - File change count = number of lines containing `**Edit**` or `**Write**` in a session log
 - Agent invocation count = number of `### Invocation` headings in an agent file
 - For partial filename matches on sessions, match against the date portion (YYYY-MM-DD)
-- If the vault directory doesn't exist, show a message: "No vault found. Run `/smith` to initialize."
+- If the vault directory doesn't exist, show a message: "No vault found. Run `/conejo-smith` to initialize."

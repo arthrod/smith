@@ -194,7 +194,7 @@ After the markdown report is written, generate a professional PDF version for cl
 
 1. Copy the canonical PDF generator into the audit output directory:
    ```bash
-   cp ~/.claude/skills/smith/scripts/audit-pdf-generator.mjs specs/audits/audit-pdf-generator.mjs
+   cp ~/.claude/skills/smith-speckit/scripts/audit-pdf-generator.mjs specs/audits/audit-pdf-generator.mjs
    ```
 2. Ensure puppeteer is installed:
    ```bash
