@@ -1,7 +1,7 @@
 ---
 name: conejo-smith
 description: Project-local Smith installer. Recommended entry point. Downloads the latest hook scripts, settings fragment, and CLAUDE.md rubric from github.com/arthrod/smith at runtime, copies them into the current repo, then delegates to /smith-speckit for the SpecKit interview — all confined to <project>/.claude/ and the project root. Nothing is written to ~/.claude/. Use when the user wants Smith on a project without polluting their global Claude config, or said "set up smith here", "install smith in this repo", "/conejo-smith", or "bootstrap this project with smith".
-argument-hint: [--preset flask-react|fastapi-next|cli-python|express-react] [--no-hooks] [--no-claude-md] [--yes] [--ref <commit-or-tag>]
+argument-hint: [--preset flask-react|fastapi-next|cli-python|express-react] [--no-hooks] [--no-claude-md] [--with-scheduler|--no-scheduler] [--yes] [--ref <commit-or-tag>]
 ---
 
 # Conejo-Smith — Project-Local Smith Installer
@@ -102,7 +102,7 @@ Conejo-Smith will install everything LOCALLY in this project (~/.claude is NOT t
 Proceed? (y/N)
 ```
 
-Honor `--no-hooks` (skip A.1 + A.2) and `--no-claude-md` (skip A.3).
+Honor `--no-hooks` (skip A.1 + A.2), `--no-claude-md` (skip A.3), and `--with-scheduler` / `--no-scheduler` (force the A.4 decision without prompting; default is to prompt with N as default).
 
 ---
 
@@ -172,15 +172,82 @@ Skip entirely if `--no-claude-md` is set.
 
 > **Note:** Phase B will append project-specific sections (Project Overview, Tech Stack, Common Commands, etc.) to this file. The rubric template is the *baseline*; Phase B appends, it does not overwrite.
 
-### A.4 Phase A summary
+### A.4 Optional: enable the global Smith scheduler
 
-After A.1–A.3, print:
+The Smith scheduler is a **global, opt-in** macOS LaunchAgent that wakes up once daily at 02:00 and processes tasks tagged `complexity: autonomous` from `.smith/vault/queue/` across **every** project listed in `~/.smith/projects.json`. It is NOT per-project — once enabled it operates over your entire registered project index.
+
+Most users do not need it. Skip if any of the following apply:
+- You don't use `/smith-queue add` to defer autonomous tasks
+- You're on Linux (LaunchAgent is macOS-only — Linux systemd support not yet available)
+- You're unsure
+
+Argument-driven behavior (no prompt fired):
+- `--with-scheduler` in `$ARGUMENTS` → install without asking
+- `--no-scheduler` in `$ARGUMENTS` → skip without asking
+- `--yes` in `$ARGUMENTS` → **does not** auto-confirm the scheduler. The default for this prompt is N; `--yes` only flows through prompts whose default is Y. To install non-interactively, pass `--with-scheduler` explicitly.
+
+Otherwise, detect the current state and prompt:
+
+```bash
+PLIST="$HOME/Library/LaunchAgents/com.smith.scheduler.plist"
+SCHED_SH="$HOME/.smith/scheduler/smith-scheduler.sh"
+
+# Skip silently if --no-scheduler or platform isn't macOS.
+if [[ "$ARGUMENTS" == *"--no-scheduler"* ]] || [[ "$(uname -s)" != "Darwin" ]]; then
+    SCHED_DECISION=skip
+elif [[ "$ARGUMENTS" == *"--with-scheduler"* ]]; then
+    SCHED_DECISION=enable
+elif [ -f "$PLIST" ]; then
+    # Already enabled — offer disable.
+    echo "The Smith scheduler is currently ENABLED ($PLIST)."
+    read -r -p "Disable it? (y/N) " reply
+    [[ "$reply" =~ ^[yY] ]] && SCHED_DECISION=disable || SCHED_DECISION=skip
+else
+    # Not enabled — offer enable.
+    echo "Smith ships an optional global scheduler — daily 02:00 LaunchAgent that"
+    echo "processes autonomous queue tasks across ALL registered projects."
+    read -r -p "Enable it? (y/N) " reply
+    [[ "$reply" =~ ^[yY] ]] && SCHED_DECISION=enable || SCHED_DECISION=skip
+fi
+```
+
+If `SCHED_DECISION=enable`:
+
+```bash
+mkdir -p "$HOME/.smith/scheduler" "$HOME/Library/LaunchAgents"
+cp "$SOURCE_DIR/scheduler/smith-scheduler.sh" "$SCHED_SH"
+chmod +x "$SCHED_SH"
+sed "s|__SMITH_HOME__|$HOME/.smith|g" \
+    "$SOURCE_DIR/scheduler/com.smith.scheduler.plist.template" > "$PLIST"
+launchctl unload "$PLIST" 2>/dev/null || true
+launchctl load "$PLIST"
+echo "✓ Scheduler enabled — daily at 02:00. Disable later by re-running /conejo-smith --no-scheduler … or:"
+echo "    launchctl unload \"$PLIST\" && rm -f \"$PLIST\" && rm -rf \"$HOME/.smith/scheduler\""
+```
+
+If `SCHED_DECISION=disable`:
+
+```bash
+launchctl unload "$PLIST" 2>/dev/null || true
+rm -f "$PLIST"
+rm -rf "$HOME/.smith/scheduler"
+echo "✓ Scheduler disabled."
+```
+
+If `SCHED_DECISION=skip`: print nothing and continue.
+
+> **Note on bundle layout:** the `$SOURCE_DIR/scheduler/` path above only exists in the `repo` source layout (network clone or `$SMITH_SOURCE` checkout). If `SOURCE_LAYOUT=bundle` (offline fallback), the scheduler files are NOT bundled — `--with-scheduler` should fail with: "Scheduler enable requires the repo source. Re-run with network access or set `$SMITH_SOURCE` to a checkout."
+
+### A.5 Phase A summary
+
+After A.1–A.4, print:
 
 ```
 Phase A complete:
   ✓ N hook scripts installed in .claude/hooks/        (or "skipped: --no-hooks")
   ✓ .claude/settings.json merged                       (or "skipped: --no-hooks")
   ✓ CLAUDE.md rubric installed (backup: <path>)        (or "skipped: --no-claude-md")
+  ✓ Scheduler <enabled|disabled|unchanged>             (decision from A.4)
 ```
 
 ---

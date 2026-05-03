@@ -56,10 +56,13 @@ echo "=== Verifying ~/.claude/ was NOT polluted ==="
 echo "Global Claude config left untouched (correct)"
 
 echo
-echo "=== Verifying scheduler ==="
-[ -f "$FAKE_HOME/.smith/scheduler/smith-scheduler.sh" ] || { echo "FAIL: scheduler script not installed"; exit 1; }
-[ -x "$FAKE_HOME/.smith/scheduler/smith-scheduler.sh" ] || { echo "FAIL: scheduler script not executable"; exit 1; }
-echo "Scheduler installed"
+echo "=== Verifying scheduler is NOT auto-installed ==="
+# Scheduler is opt-in via /conejo-smith. install.sh must NOT install it.
+[ ! -f "$FAKE_HOME/Library/LaunchAgents/com.smith.scheduler.plist" ] \
+    || { echo "FAIL: install.sh should not have installed scheduler LaunchAgent"; exit 1; }
+[ ! -d "$FAKE_HOME/.smith/scheduler" ] \
+    || { echo "FAIL: install.sh should not create ~/.smith/scheduler/ (left to /conejo-smith)"; exit 1; }
+echo "Scheduler not auto-installed (correct)"
 
 echo
 echo "=== Running uninstall ==="

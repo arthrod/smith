@@ -22,19 +22,35 @@ A typical use case: during the day you queue up tasks with `/smith-queue add --m
 
 ## Installing the LaunchAgent
 
-The installer offers to set up the LaunchAgent during `scripts/install.sh`. To install it manually:
+The scheduler is **opt-in**. `scripts/install.sh` no longer touches it. Three ways to enable:
 
 ```bash
-bash ~/.smith/scheduler/install-launchagent.sh
+# Recommended: prompt-based, inside any project
+/conejo-smith                       # answers default to Y/N; scheduler default is N
+
+# Non-interactive opt-in
+/conejo-smith --with-scheduler --yes
+
+# Manual (advanced)
+cd /path/to/smith   # repo checkout required
+mkdir -p ~/.smith/scheduler ~/Library/LaunchAgents
+cp scheduler/smith-scheduler.sh ~/.smith/scheduler/smith-scheduler.sh
+chmod +x ~/.smith/scheduler/smith-scheduler.sh
+sed "s|__SMITH_HOME__|$HOME/.smith|g" \
+    scheduler/com.smith.scheduler.plist.template > ~/Library/LaunchAgents/com.smith.scheduler.plist
+launchctl load ~/Library/LaunchAgents/com.smith.scheduler.plist
 ```
 
-This creates a plist at `~/Library/LaunchAgents/com.smith.scheduler.plist` and loads it with `launchctl`.
-
-### Uninstalling the LaunchAgent
+### Disabling the LaunchAgent
 
 ```bash
+# Recommended:
+/conejo-smith --no-scheduler        # if the agent is currently enabled, this disables it
+
+# Or manual:
 launchctl unload ~/Library/LaunchAgents/com.smith.scheduler.plist
-rm ~/Library/LaunchAgents/com.smith.scheduler.plist
+rm -f ~/Library/LaunchAgents/com.smith.scheduler.plist
+rm -rf ~/.smith/scheduler
 ```
 
 ---

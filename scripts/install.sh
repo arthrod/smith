@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Smith installer — copies skills, hooks, scheduler, and merges settings into
-# your Claude Code config. Idempotent: re-run to upgrade.
+# Smith installer — copies skills only. Hooks, settings, rubric, and the
+# scheduler are NOT installed by this script — they are opt-in via
+# /conejo-smith inside each project. Idempotent: re-run to upgrade skills.
 #
 # Usage:
 #   ./scripts/install.sh              # interactive
@@ -8,9 +9,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/arthrod/smith/main/scripts/install.sh | bash
 #
 # Environment:
-#   SMITH_HOME          (default: ~/.smith)        where scheduler + runtime state live
-#   CLAUDE_HOME         (default: ~/.claude)       where skills and hooks are installed
-#   SMITH_SKIP_SCHEDULER=1                         skip scheduler prompt even on macOS
+#   SMITH_HOME          (default: ~/.smith)        runtime state location used by skills
+#   CLAUDE_HOME         (default: ~/.claude)       where skills are installed
 #   SMITH_ASSUME_YES=1                             same as -y
 
 set -euo pipefail
@@ -123,22 +123,21 @@ echo "  • Bundle hooks + rubric + settings fragment into the conejo-smith skil
 echo "    as an OFFLINE FALLBACK ($CLAUDE_SKILLS_DIR/conejo-smith/). At runtime,"
 echo "    /conejo-smith downloads the latest from github.com/arthrod/smith and"
 echo "    only uses this bundle if the network clone fails."
-echo "  • Copy scheduler → $SMITH_HOME/scheduler/"
 echo
 echo "  Notes:"
 echo "    – ~/.claude/hooks/ is NOT modified."
 echo "    – ~/.claude/settings.json is NOT modified."
 echo "    – ~/.claude/CLAUDE.md is NOT modified."
+echo "    – The scheduler LaunchAgent is NOT installed here. To enable it, run"
+echo "      /conejo-smith inside a project and answer Y at the scheduler prompt"
+echo "      (or pass --with-scheduler)."
 echo "    Project-local installation happens inside each repo via /conejo-smith,"
 echo "    which fetches assets from the smith repo at runtime by default."
-if [ "$IS_MACOS" = "1" ] && [ "${SMITH_SKIP_SCHEDULER:-0}" != "1" ]; then
-    echo "  • Offer to install a macOS LaunchAgent for the daily scheduler"
-fi
 echo
 prompt_yn "Proceed?" y || { info "Aborted by user"; exit 0; }
 
 # ---------- create target dirs ----------
-mkdir -p "$CLAUDE_SKILLS_DIR" "$SMITH_HOME/scheduler"
+mkdir -p "$CLAUDE_SKILLS_DIR"
 
 # ---------- copy skills ----------
 info "Copying skills"
@@ -195,32 +194,13 @@ if [ -d "$CONEJO_SKILL_DIR" ]; then
     ok "Bundled $HOOK_COUNT hooks + settings fragment + rubric into conejo-smith skill"
 fi
 
-# ---------- copy scheduler ----------
-info "Copying scheduler"
-cp "$REPO_ROOT/scheduler/smith-scheduler.sh" "$SMITH_HOME/scheduler/smith-scheduler.sh"
-chmod +x "$SMITH_HOME/scheduler/smith-scheduler.sh"
-ok "Installed scheduler script"
-
-# ---------- optional: scheduler LaunchAgent ----------
-if [ "$IS_MACOS" = "1" ] && [ "${SMITH_SKIP_SCHEDULER:-0}" != "1" ]; then
-    echo
-    info "Smith can register a macOS LaunchAgent to run the queue processor daily at 2am."
-    info "This runs bash scripts on your machine in the background. You can audit the"
-    info "script at $SMITH_HOME/scheduler/smith-scheduler.sh before enabling."
-    if prompt_yn "Install the daily scheduler LaunchAgent?" n; then
-        LAUNCH_AGENT_DIR="$HOME/Library/LaunchAgents"
-        PLIST_DEST="$LAUNCH_AGENT_DIR/com.smith.scheduler.plist"
-        mkdir -p "$LAUNCH_AGENT_DIR"
-        sed "s|__SMITH_HOME__|$SMITH_HOME|g" \
-            "$REPO_ROOT/scheduler/com.smith.scheduler.plist.template" > "$PLIST_DEST"
-        launchctl unload "$PLIST_DEST" 2>/dev/null || true
-        launchctl load "$PLIST_DEST"
-        ok "LaunchAgent installed: $PLIST_DEST"
-    else
-        info "Skipped scheduler install. You can run it later with:"
-        echo "    $REPO_ROOT/scripts/install.sh -y"
-    fi
-fi
+# Scheduler install is intentionally NOT performed here. The scheduler is a
+# global, opt-in daemon — install.sh -y previously auto-confirmed it against
+# its default of N, surprising users. To enable, run /conejo-smith inside any
+# project and answer Y at the scheduler prompt (or pass --with-scheduler).
+# To disable later: launchctl unload ~/Library/LaunchAgents/com.smith.scheduler.plist
+#                   rm ~/Library/LaunchAgents/com.smith.scheduler.plist
+#                   rm -rf ~/.smith/scheduler/
 
 # ---------- done ----------
 echo
