@@ -1,12 +1,14 @@
 ---
-name: smith
-description: Initialize SpecKit on a new or existing project — scans the codebase, interviews you about project details, and generates CLAUDE.md, constitution.md, and the full .specify/ scaffolding with commands and agents.
+name: smith-speckit
+description: Legacy SpecKit-only initializer (formerly /smith). Scans the codebase, interviews you about project details, and generates CLAUDE.md, constitution.md, and the full .specify/ scaffolding with commands and agents. Does NOT install hooks or modify ~/.claude/. For a one-shot project-local install (hooks + rubric + SpecKit), use /conejo-smith instead — it delegates to this skill for Phase 1 onward. Only invoke directly if hooks were already wired by another path.
 argument-hint: [--preset flask-react|fastapi-next|cli-python|express-react]
 ---
 
-# SpecKit Project Initialization
+# SpecKit Project Initialization (smith-speckit, formerly /smith)
 
 Bootstrap a project with the full SpecKit spec-driven development workflow. This skill scans the existing codebase to pre-fill answers, interviews you about your project, and generates all configuration files.
+
+> **Note on naming:** This skill was renamed from `/smith` to `/smith-speckit` to make its scope explicit. `/conejo-smith` is now the recommended entry point — it installs project-local hooks and the rubric, then delegates to this skill for the SpecKit interview.
 
 **Arguments:** $ARGUMENTS
 
@@ -17,14 +19,14 @@ Bootstrap a project with the full SpecKit spec-driven development workflow. This
 The SpecKit skill assets (templates, scripts, commands, agents) are bundled at:
 
 ```
-~/.claude/skills/smith/
+~/.claude/skills/smith-speckit/
 ├── templates/          # spec, plan, tasks, checklist, agent-file templates
 ├── scripts/            # Shell scripts for feature management
 ├── commands/           # Slash command definitions (smith.specify, etc.)
 └── agents/             # Agent definitions (architect, senior-qa, etc.)
 ```
 
-Verify this directory exists. If missing, abort with: "SpecKit skill assets not found at ~/.claude/skills/smith/. Please reinstall the skill."
+Verify this directory exists. If missing, abort with: "SpecKit skill assets not found at ~/.claude/skills/smith-speckit/. Please reinstall the skill."
 
 ### Phase 1: Preset Check
 
@@ -190,7 +192,7 @@ The recommended answers should be based on:
 
 #### 3.3 If `specs/init-intake.md` ALREADY exists, read and use it
 
-Parse the existing file to extract the **Answer** lines for each question. These answers drive all subsequent file generation in Phase 4. Tell the user: "Found existing `specs/init-intake.md` — using your recorded answers. Edit the file and re-run `/smith` to change any decisions."
+Parse the existing file to extract the **Answer** lines for each question. These answers drive all subsequent file generation in Phase 4. Tell the user: "Found existing `specs/init-intake.md` — using your recorded answers. Edit the file and re-run `/smith-speckit` (or `/conejo-smith`) to change any decisions."
 
 #### 3.4 Interactive Walkthrough
 
@@ -232,7 +234,7 @@ The `docs/sessions/` directory holds session chat logs (timestamped Q&A records 
 
 The `.smith/vault/ledger/` directory holds the Ledger — Smith's learned knowledge from past workflow executions. After creating the directory, scaffold the Ledger template files: `patterns.md`, `antipatterns.md`, `tool-preferences.md`, `edge-cases.md`, `project-quirks.md` (each with a header and empty-state message), and `meta.yaml` (initialized with creation date and zero counters). See the `smith-reflect` skill for the exact file formats.
 
-Copy from `~/.claude/skills/smith/`:
+Copy from `~/.claude/skills/smith-speckit/`:
 - `templates/*` → `.specify/templates/`
 - `scripts/*` → `.specify/scripts/bash/`
 
@@ -462,7 +464,7 @@ Create the project's `.claude/commands/` directory and copy command files from t
 mkdir -p .claude/commands
 ```
 
-Copy from `~/.claude/skills/smith/commands/`:
+Copy from `~/.claude/skills/smith-speckit/commands/`:
 - All `smith.*.md` files → `.claude/commands/`
 - `review-respond.md` → `.claude/commands/`
 
@@ -474,7 +476,7 @@ If the user selected review gates in Q27, create custom agent definitions:
 mkdir -p .claude/agents
 ```
 
-Copy from `~/.claude/skills/smith/agents/`:
+Copy from `~/.claude/skills/smith-speckit/agents/`:
 - If architect gate enabled: `architect.md` → `.claude/agents/`
 - If product-manager gate enabled: `product-manager.md` → `.claude/agents/`
 - Always copy: `senior-qa.md`, `staff-backend.md`, `staff-frontend.md`, `staff-fullstack.md`, `staff-infrastructure.md`
@@ -570,7 +572,7 @@ After generating all files, present a summary:
 
 ## Important Notes
 
-- **Never modify files in the source project** — this skill only reads from `~/.claude/skills/smith/` and writes to the current working directory
+- **Never modify files in the source project** — this skill only reads from `~/.claude/skills/smith-speckit/` and writes to the current working directory
 - **Existing files**: Always ask before overwriting. If `CLAUDE.md` exists, offer to merge or replace
 - **Idempotent**: Running `/smith.init` again should detect existing setup and offer to update
 - **Minimal questions**: Skip any question where codebase detection has high confidence. The goal is to confirm, not interrogate

@@ -2,10 +2,10 @@
   "name": "smith",
   "version": "0.1.0",
   "description": "Spec-driven development for Claude Code — requirements, plans, and tasks that ship as working code.",
-  "author": "ATTCK",
+  "author": "arthrod",
   "license": "MIT",
-  "homepage": "https://smith.attck.com",
-  "repository": "https://github.com/ATTCKDigital/smith",
+  "homepage": "https://github.com/arthrod/smith",
+  "repository": "https://github.com/arthrod/smith",
   "skills": "skills/",
   "hooks": "hooks/"
 }

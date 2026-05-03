@@ -1,8 +1,8 @@
 # Hooks Reference
 
-Smith installs 9 hooks into `~/.claude/hooks/`. Each hook is a bash script registered in `~/.claude/settings.json` under the `hooks` key. Claude Code fires hooks automatically at specific lifecycle events.
+Smith ships 9 hooks. They are **not** installed globally — `/conejo-smith` copies them into `<project>/.claude/hooks/` and adds entries to `<project>/.claude/settings.json` using `${CLAUDE_PROJECT_DIR}` paths. To disable any hook, remove its entry from `<project>/.claude/settings.json`.
 
-To disable any hook, remove its entry from `~/.claude/settings.json`. The script file can remain in `~/.claude/hooks/` without effect.
+> The upstream `security-guard-bash` and `security-guard-files` hooks were removed in this fork — they were too strict. Use narrower `permissions.deny` rules in `<project>/.claude/settings.json` if you need similar protection.
 
 ---
 
@@ -12,11 +12,11 @@ To disable any hook, remove its entry from `~/.claude/settings.json`. The script
 |------|-------|---------|---------|
 | session-start-logger | SessionStart | * | Create session log |
 | session-end-review | Stop | * | Review changes, prompt for spec updates |
+| workflow-summary | Stop | * | Append per-workflow token/cost/duration totals to the session log when a primary workflow completes |
 | grade-response | Stop | * | Grade response against CLAUDE.md rubric; block stop and retry if score < 100 |
 | file-change-logger | PostToolUse | Write, Edit, NotebookEdit | Log file changes to session |
 | lint-on-save | PostToolUse | Write, Edit | Run linter on saved files |
-| security-guard-bash | PreToolUse | Bash | Block dangerous commands |
-| security-guard-files | PreToolUse | Write, Edit, NotebookEdit | Block writes to sensitive files |
+| metrics-tracker | PostToolUse | * | Track tool-use metrics for the active session |
 | task-router | PreToolUse | Task | Route tasks during workflows |
 | subagent-vault-writeback | SubagentStop | * | Persist sub-agent findings |
 
@@ -73,26 +73,6 @@ To disable any hook, remove its entry from `~/.claude/settings.json`. The script
 - **What it does:** Fires after file writes and edits. Detects the file type and runs the appropriate linter if one is available (e.g., eslint for JavaScript/TypeScript, ruff for Python, shellcheck for bash). Reports lint errors back to Claude Code so they can be addressed immediately. If no linter is found for the file type, the hook exits silently.
 - **Files touched:** Reads the saved file; does not modify any files
 - **To disable:** Remove the `PostToolUse` entry referencing this script from `settings.json`.
-
----
-
-### security-guard-bash.sh
-
-- **Event:** PreToolUse
-- **Matcher:** `Bash`
-- **What it does:** Intercepts every Bash command before execution. Checks the command against a blocklist of dangerous patterns including recursive deletion of critical paths, environment variable dumps, secret exfiltration attempts, and hook bypass commands. If a match is found, the hook returns a block response that prevents the command from executing and logs the blocked attempt.
-- **Files touched:** None (inspection only)
-- **To disable:** Remove the `PreToolUse` entry for Bash referencing this script from `settings.json`. Warning: disabling this hook removes a safety layer against destructive commands.
-
----
-
-### security-guard-files.sh
-
-- **Event:** PreToolUse
-- **Matcher:** `Write`, `Edit`, `NotebookEdit`
-- **What it does:** Intercepts every file write or edit before execution. Checks the target file path against a blocklist of sensitive file patterns (environment files, credentials, keys, SSH config, Claude Code config). Writes to `.smith/vault/` are always allowed. If a blocked path is detected, the hook returns a block response and logs the attempt.
-- **Files touched:** None (inspection only)
-- **To disable:** Remove the `PreToolUse` entry for Write/Edit/NotebookEdit referencing this script from `settings.json`. Warning: disabling this hook removes protection against accidental writes to sensitive files.
 
 ---
 

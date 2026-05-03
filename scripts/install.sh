@@ -5,7 +5,7 @@
 # Usage:
 #   ./scripts/install.sh              # interactive
 #   ./scripts/install.sh -y            # assume yes to all prompts
-#   curl -fsSL https://raw.githubusercontent.com/ATTCKDigital/smith/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/arthrod/smith/main/scripts/install.sh | bash
 #
 # Environment:
 #   SMITH_HOME          (default: ~/.smith)        where scheduler + runtime state live
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # ---------- constants ----------
-SMITH_REPO_URL="https://github.com/ATTCKDigital/smith.git"
+SMITH_REPO_URL="https://github.com/arthrod/smith.git"
 SMITH_HOME="${SMITH_HOME:-$HOME/.smith}"
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 CLAUDE_SKILLS_DIR="$CLAUDE_HOME/skills"
@@ -118,11 +118,19 @@ fi
 # ---------- confirm install ----------
 echo
 info "Smith will:"
-echo "  • Copy 27 skills → $CLAUDE_SKILLS_DIR/smith*"
-echo "  • Copy 9 hooks   → $CLAUDE_HOOKS_DIR/"
+echo "  • Copy 27 skills → $CLAUDE_SKILLS_DIR/{smith-speckit,smith-*,conejo-smith}"
+echo "  • Bundle hooks + rubric + settings fragment into the conejo-smith skill"
+echo "    as an OFFLINE FALLBACK ($CLAUDE_SKILLS_DIR/conejo-smith/). At runtime,"
+echo "    /conejo-smith downloads the latest from github.com/arthrod/smith and"
+echo "    only uses this bundle if the network clone fails."
 echo "  • Copy scheduler → $SMITH_HOME/scheduler/"
-echo "  • Install global CLAUDE.md rubric → $CLAUDE_MD (backup first)"
-echo "  • Merge hook entries into $CLAUDE_SETTINGS (backup first)"
+echo
+echo "  Notes:"
+echo "    – ~/.claude/hooks/ is NOT modified."
+echo "    – ~/.claude/settings.json is NOT modified."
+echo "    – ~/.claude/CLAUDE.md is NOT modified."
+echo "    Project-local installation happens inside each repo via /conejo-smith,"
+echo "    which fetches assets from the smith repo at runtime by default."
 if [ "$IS_MACOS" = "1" ] && [ "${SMITH_SKIP_SCHEDULER:-0}" != "1" ]; then
     echo "  • Offer to install a macOS LaunchAgent for the daily scheduler"
 fi
@@ -130,76 +138,68 @@ echo
 prompt_yn "Proceed?" y || { info "Aborted by user"; exit 0; }
 
 # ---------- create target dirs ----------
-mkdir -p "$CLAUDE_SKILLS_DIR" "$CLAUDE_HOOKS_DIR" "$SMITH_HOME/scheduler"
-
-# ---------- backup settings.json ----------
-if [ -f "$CLAUDE_SETTINGS" ]; then
-    BACKUP="$CLAUDE_SETTINGS.bak-$(date +%Y%m%d-%H%M%S)"
-    cp "$CLAUDE_SETTINGS" "$BACKUP"
-    ok "Backed up existing settings → $BACKUP"
-else
-    echo '{}' > "$CLAUDE_SETTINGS"
-    ok "Created new $CLAUDE_SETTINGS"
-fi
+mkdir -p "$CLAUDE_SKILLS_DIR" "$SMITH_HOME/scheduler"
 
 # ---------- copy skills ----------
 info "Copying skills"
 SKILL_COUNT=0
-for skill_src in "$REPO_ROOT"/skills/smith "$REPO_ROOT"/skills/smith-*; do
+for skill_src in "$REPO_ROOT"/skills/smith-* "$REPO_ROOT"/skills/conejo-smith; do
     [ -d "$skill_src" ] || continue
     skill_name="$(basename "$skill_src")"
     rm -rf "$CLAUDE_SKILLS_DIR/$skill_name"
     cp -R "$skill_src" "$CLAUDE_SKILLS_DIR/"
     SKILL_COUNT=$((SKILL_COUNT + 1))
 done
+
+# Migrate from pre-rename layout: if a stale ~/.claude/skills/smith/ exists from an
+# earlier install, remove it so the renamed smith-speckit takes over cleanly.
+if [ -d "$CLAUDE_SKILLS_DIR/smith" ]; then
+    rm -rf "$CLAUDE_SKILLS_DIR/smith"
+    info "Removed stale ~/.claude/skills/smith/ (renamed to smith-speckit)"
+fi
+
 ok "Installed $SKILL_COUNT skills"
 
-# ---------- copy hooks ----------
-info "Copying hooks"
-HOOK_COUNT=0
-for hook_src in "$REPO_ROOT"/hooks/*.sh; do
-    [ -f "$hook_src" ] || continue
-    hook_name="$(basename "$hook_src")"
-    cp "$hook_src" "$CLAUDE_HOOKS_DIR/$hook_name"
-    chmod +x "$CLAUDE_HOOKS_DIR/$hook_name"
-    HOOK_COUNT=$((HOOK_COUNT + 1))
-done
-ok "Installed $HOOK_COUNT hooks"
+# ---------- bundle assets into the conejo-smith skill ----------
+# The conejo-smith skill copies these INTO each project on demand. They live
+# under the skill directory so the skill is self-contained and so re-running
+# install.sh keeps them in sync with the smith repo. The bundle is OFFLINE
+# FALLBACK only — at invocation time /conejo-smith fetches from the repo.
+CONEJO_SKILL_DIR="$CLAUDE_SKILLS_DIR/conejo-smith"
+if [ ! -d "$CONEJO_SKILL_DIR" ]; then
+    err "conejo-smith skill missing from $CLAUDE_SKILLS_DIR — checkout at $REPO_ROOT looks incomplete."
+    err "Expected $REPO_ROOT/skills/conejo-smith/ to exist. Re-clone https://github.com/arthrod/smith and retry."
+    exit 1
+fi
+if [ -d "$CONEJO_SKILL_DIR" ]; then
+    info "Bundling offline-fallback assets into $CONEJO_SKILL_DIR"
+    mkdir -p "$CONEJO_SKILL_DIR/hooks"
+    HOOK_COUNT=0
+    for hook_src in "$REPO_ROOT"/hooks/*.sh; do
+        [ -f "$hook_src" ] || continue
+        cp "$hook_src" "$CONEJO_SKILL_DIR/hooks/$(basename "$hook_src")"
+        chmod +x "$CONEJO_SKILL_DIR/hooks/$(basename "$hook_src")"
+        HOOK_COUNT=$((HOOK_COUNT + 1))
+    done
+    # workflow_summary_lib.py is sourced by workflow-summary.sh — bundle it too.
+    if [ -f "$REPO_ROOT/hooks/workflow_summary_lib.py" ]; then
+        cp "$REPO_ROOT/hooks/workflow_summary_lib.py" "$CONEJO_SKILL_DIR/hooks/"
+    fi
+    if [ -f "$REPO_ROOT/hooks/pricing.json" ]; then
+        cp "$REPO_ROOT/hooks/pricing.json" "$CONEJO_SKILL_DIR/hooks/"
+    fi
+    cp "$REPO_ROOT/settings/smith-settings-fragment-local.json" \
+       "$CONEJO_SKILL_DIR/settings-fragment.json"
+    cp "$REPO_ROOT/settings/claude-md-template.md" \
+       "$CONEJO_SKILL_DIR/claude-md-template.md"
+    ok "Bundled $HOOK_COUNT hooks + settings fragment + rubric into conejo-smith skill"
+fi
 
 # ---------- copy scheduler ----------
 info "Copying scheduler"
 cp "$REPO_ROOT/scheduler/smith-scheduler.sh" "$SMITH_HOME/scheduler/smith-scheduler.sh"
 chmod +x "$SMITH_HOME/scheduler/smith-scheduler.sh"
 ok "Installed scheduler script"
-
-# ---------- install global CLAUDE.md rubric ----------
-info "Installing global CLAUDE.md rubric"
-CLAUDE_MD_TEMPLATE="$REPO_ROOT/settings/claude-md-template.md"
-if [ -f "$CLAUDE_MD" ]; then
-    CLAUDE_MD_BACKUP="$CLAUDE_MD.bak-$(date +%Y%m%d-%H%M%S)"
-    cp "$CLAUDE_MD" "$CLAUDE_MD_BACKUP"
-    ok "Backed up existing CLAUDE.md → $CLAUDE_MD_BACKUP"
-fi
-cp "$CLAUDE_MD_TEMPLATE" "$CLAUDE_MD"
-ok "Installed CLAUDE.md rubric at $CLAUDE_MD"
-
-# ---------- merge settings.json ----------
-info "Merging hook entries into $CLAUDE_SETTINGS"
-FRAGMENT="$REPO_ROOT/settings/smith-settings-fragment.json"
-TMP_SETTINGS="$(mktemp)"
-jq -s '
-  .[0] as $existing | .[1] as $fragment |
-  $existing * $fragment |
-  .hooks = (
-    ($existing.hooks // {}) as $eh |
-    ($fragment.hooks // {}) as $fh |
-    ($eh | to_entries) as $ehe |
-    ($fh | to_entries) as $fhe |
-    (($ehe + $fhe) | group_by(.key) | map({key: .[0].key, value: (map(.value) | add)}) | from_entries)
-  )
-' "$CLAUDE_SETTINGS" "$FRAGMENT" > "$TMP_SETTINGS"
-mv "$TMP_SETTINGS" "$CLAUDE_SETTINGS"
-ok "Settings merged"
 
 # ---------- optional: scheduler LaunchAgent ----------
 if [ "$IS_MACOS" = "1" ] && [ "${SMITH_SKIP_SCHEDULER:-0}" != "1" ]; then
@@ -228,9 +228,11 @@ ok "Smith installed successfully"
 echo
 echo "  Next steps:"
 echo "    1. Open Claude Code in any project"
-echo "    2. Run /smith-new to start a new feature, or /smith-help to see all commands"
+echo "    2. Run /conejo-smith to bootstrap that project. It will fetch the latest"
+echo "       hooks + rubric from github.com/arthrod/smith and copy them in locally."
+echo "    3. Then /smith-new for features, or /smith-help to see all commands"
 echo "    3. Session logs and vault state will be created in <project>/.smith/vault/"
 echo
-echo "  Docs: https://github.com/ATTCKDigital/smith"
+echo "  Docs: https://github.com/arthrod/smith"
 echo "  Website: https://smith.attck.com"
 echo

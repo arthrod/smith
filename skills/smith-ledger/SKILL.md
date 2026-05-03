@@ -107,7 +107,7 @@ Display a summary dashboard:
    ```
    No Ledger found.
    Run `/smith-reflect` after a workflow to start building the Ledger,
-   or run `/smith` to initialize the vault structure.
+   or run `/conejo-smith` to initialize the vault structure.
    ```
 
 2. **Read `meta.yaml`** for overview stats (last reflection date, total reflections, total entries, config).

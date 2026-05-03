@@ -20,13 +20,13 @@ Smith
 
 Skills are directories installed to `~/.claude/skills/`. Each skill directory contains a `SKILL.md` file with YAML frontmatter that defines the skill's name, description, and trigger patterns.
 
-The main `smith` skill (`~/.claude/skills/smith/`) is the largest and contains subdirectories:
+The main SpecKit-init skill `smith-speckit` (`~/.claude/skills/smith-speckit/`, formerly `smith`) is the largest and contains subdirectories:
 
 - **agents/** -- Sub-agent definitions for specialized tasks (analysis, implementation, review)
 - **templates/** -- Markdown templates for specs, plans, tasks, reports, and other artifacts
 - **scripts/** -- Bash scripts used by skills during workflow execution
 
-All other skills (`smith-new`, `smith-debug`, `smith-bugfix`, etc.) are standalone directories that reference the main smith skill's templates and agents as needed.
+All other skills (`smith-new`, `smith-debug`, `smith-bugfix`, etc.) are standalone directories that reference the smith-speckit skill's templates and agents as needed. The `conejo-smith` skill is the recommended entry point — it installs project-local hooks and the rubric, then delegates to `smith-speckit` for the SpecKit interview.
 
 ### SKILL.md Frontmatter
 
@@ -67,13 +67,13 @@ Task files are JSON documents with fields for description, status, mode, priorit
 
 ## Hook Execution Model
 
-Hooks are registered in `~/.claude/settings.json` under the `hooks` key. Each entry specifies:
+In this fork, hooks are **project-local**. `/conejo-smith` copies the bundled hook scripts into `<project>/.claude/hooks/` and registers them in `<project>/.claude/settings.json` under the `hooks` key. The user-global `~/.claude/settings.json` and `~/.claude/hooks/` are intentionally not touched. Each registered entry specifies:
 
 - The event type (SessionStart, Stop, PreToolUse, PostToolUse, SubagentStop)
 - A matcher pattern (which tool or event name to match)
-- The path to a bash script in `~/.claude/hooks/`
+- The hook command, expressed as `bash "${CLAUDE_PROJECT_DIR}/.claude/hooks/<script>.sh"` so the path resolves to the active project's hooks directory regardless of the cwd inside the repo
 
-When Claude Code fires a matching event, it executes the corresponding bash script synchronously. PreToolUse hooks can block the tool call by returning a specific exit code. PostToolUse hooks run after the tool call completes and cannot block it.
+When Claude Code fires a matching event, it executes the corresponding bash script synchronously. PreToolUse hooks can block the tool call by returning a specific exit code. PostToolUse hooks run after the tool call completes and cannot block it. Stop hooks may exit `2` to block the stop and force a retry (used by `grade-response.sh` for rubric enforcement).
 
 See [Hooks Reference](hooks.md) for details on each hook.
 

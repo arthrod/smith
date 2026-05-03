@@ -126,7 +126,7 @@ Registered projects live in `~/.smith/projects.json` as a JSON array of entries.
 ]
 ```
 
-Only projects listed here will be scanned for autonomous tasks. New entries are usually created automatically the first time you run `/smith` in a project.
+Only projects listed here will be scanned for autonomous tasks. New entries are usually created automatically the first time you run `/conejo-smith` in a project.
 
 ---
 

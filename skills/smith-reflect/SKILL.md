@@ -101,7 +101,7 @@ confidence_distribution:
   low: 0
 ```
 
-This lazy-creation guard ensures reflection works even if `/smith` init was never run.
+This lazy-creation guard ensures reflection works even if `/conejo-smith` (or legacy `/smith-speckit`) init was never run.
 
 ## Phase 1: Configuration Check
 

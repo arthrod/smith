@@ -90,12 +90,18 @@ fi
 #
 # Resolve the hooks dir that contains workflow_summary_lib.py. Priority:
 #   1. $CLAUDE_HOOKS_DIR if it contains the lib
-#   2. ~/.claude/hooks/ if it contains the lib
-#   3. Sibling dir of this script (repo checkout / bundled use)
-# This lets a single copy of the .sh live in either location.
+#   2. Sibling dir of this script (project-local install: <project>/.claude/hooks/)
+#   3. ~/.claude/skills/conejo-smith/hooks/ (bundled assets, current install model)
+#   4. ~/.claude/hooks/ (legacy global install model)
+# The bundled skill dir (3) is checked before the legacy dir (4) because that
+# is where install.sh writes the lib in the project-local model.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK_DIR=""
-for candidate in "${CLAUDE_HOOKS_DIR:-}" "$HOME/.claude/hooks" "$SCRIPT_DIR"; do
+for candidate in \
+    "${CLAUDE_HOOKS_DIR:-}" \
+    "$SCRIPT_DIR" \
+    "$HOME/.claude/skills/conejo-smith/hooks" \
+    "$HOME/.claude/hooks"; do
     if [ -n "$candidate" ] && [ -f "$candidate/workflow_summary_lib.py" ]; then
         HOOK_DIR="$candidate"
         break
@@ -103,7 +109,7 @@ for candidate in "${CLAUDE_HOOKS_DIR:-}" "$HOME/.claude/hooks" "$SCRIPT_DIR"; do
 done
 
 if [ -z "$HOOK_DIR" ]; then
-    echo "workflow-summary.sh: cannot locate workflow_summary_lib.py (checked \$CLAUDE_HOOKS_DIR, ~/.claude/hooks, $SCRIPT_DIR)" >&2
+    echo "workflow-summary.sh: cannot locate workflow_summary_lib.py (checked \$CLAUDE_HOOKS_DIR, $SCRIPT_DIR, ~/.claude/skills/conejo-smith/hooks, ~/.claude/hooks)" >&2
     exit 0
 fi
 

@@ -3,7 +3,9 @@
 # Event: Stop
 # Scope: Main session only
 #
-# Grades the just-completed turn against the rubric in ~/.claude/CLAUDE.md.
+# Grades the just-completed turn against a CLAUDE.md rubric. Prefers the
+# project-local rubric at $CLAUDE_PROJECT_DIR/CLAUDE.md (the one /conejo-smith
+# installs). Falls back to ~/.claude/CLAUDE.md for legacy global setups.
 # Exit 2 to block the stop and force a retry when score < 100.
 # Capped at 3 retries per turn — after that, warn and pass.
 
@@ -25,7 +27,21 @@ fi
 
 RETRY_FILE="/tmp/claude-grade-retry-${SESSION_ID}"
 MAX_RETRIES=3
-CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+
+# Resolve rubric path: project-local first (installed by /conejo-smith),
+# then user-global fallback. If neither exists, fail open — no rubric, no
+# grade — and warn once on stderr unless silenced.
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -f "$CLAUDE_PROJECT_DIR/CLAUDE.md" ]; then
+    CLAUDE_MD="$CLAUDE_PROJECT_DIR/CLAUDE.md"
+elif [ -f "$HOME/.claude/CLAUDE.md" ]; then
+    CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+else
+    if [ "${CLAUDE_NO_RUBRIC_WARNING:-1}" != "0" ]; then
+        echo "grade-response: no CLAUDE.md rubric found at \$CLAUDE_PROJECT_DIR or ~/.claude — skipping. Set CLAUDE_NO_RUBRIC_WARNING=0 to silence." >&2
+    fi
+    exit 0
+fi
+
 RETRIES=$(cat "$RETRY_FILE" 2>/dev/null || echo 0)
 
 # Extract last user message + last assistant turn (with tool calls) from JSONL transcript
