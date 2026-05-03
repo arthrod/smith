@@ -1,6 +1,6 @@
 # Hooks Reference
 
-Smith ships 7 hooks. They are **not** installed globally — `/conejo-smith` copies them into `<project>/.claude/hooks/` and adds entries to `<project>/.claude/settings.json` using `${CLAUDE_PROJECT_DIR}` paths. To disable any hook, remove its entry from `<project>/.claude/settings.json`.
+Smith ships 9 hooks. They are **not** installed globally — `/conejo-smith` copies them into `<project>/.claude/hooks/` and adds entries to `<project>/.claude/settings.json` using `${CLAUDE_PROJECT_DIR}` paths. To disable any hook, remove its entry from `<project>/.claude/settings.json`.
 
 > The upstream `security-guard-bash` and `security-guard-files` hooks were removed in this fork — they were too strict. Use narrower `permissions.deny` rules in `<project>/.claude/settings.json` if you need similar protection.
 
@@ -12,6 +12,7 @@ Smith ships 7 hooks. They are **not** installed globally — `/conejo-smith` cop
 |------|-------|---------|---------|
 | session-start-logger | SessionStart | * | Create session log |
 | session-end-review | Stop | * | Review changes, prompt for spec updates |
+| workflow-summary | Stop | * | Append per-workflow token/cost/duration totals to the session log when a primary workflow completes |
 | grade-response | Stop | * | Grade response against CLAUDE.md rubric; block stop and retry if score < 100 |
 | file-change-logger | PostToolUse | Write, Edit, NotebookEdit | Log file changes to session |
 | lint-on-save | PostToolUse | Write, Edit | Run linter on saved files |

@@ -75,11 +75,16 @@ for skill in "$CLAUDE_SKILLS_DIR"/smith "$CLAUDE_SKILLS_DIR"/smith-* "$CLAUDE_SK
 done
 ok "Removed $REMOVED_SKILLS skills"
 
-# Remove hooks
+# Remove hooks. Includes legacy security-guard-{bash,files}.sh — those were
+# removed in this fork as too aggressive, but users who installed an earlier
+# version may still have them in ~/.claude/hooks/. Listing them here ensures
+# clean uninstall on upgrade paths.
 SMITH_HOOKS=(
     file-change-logger.sh grade-response.sh lint-on-save.sh
     session-end-review.sh session-start-logger.sh
     subagent-vault-writeback.sh task-router.sh metrics-tracker.sh
+    workflow-summary.sh
+    security-guard-bash.sh security-guard-files.sh
 )
 REMOVED_HOOKS=0
 for hook in "${SMITH_HOOKS[@]}"; do
@@ -88,7 +93,14 @@ for hook in "${SMITH_HOOKS[@]}"; do
         REMOVED_HOOKS=$((REMOVED_HOOKS + 1))
     fi
 done
-ok "Removed $REMOVED_HOOKS hooks"
+# Also clean up workflow-summary library and pricing table from legacy installs.
+for support_file in workflow_summary_lib.py pricing.json; do
+    if [ -f "$CLAUDE_HOOKS_DIR/$support_file" ]; then
+        rm -f "$CLAUDE_HOOKS_DIR/$support_file"
+        REMOVED_HOOKS=$((REMOVED_HOOKS + 1))
+    fi
+done
+ok "Removed $REMOVED_HOOKS hooks/support files"
 
 # Remove scheduler
 if [ -d "$SMITH_HOME/scheduler" ]; then

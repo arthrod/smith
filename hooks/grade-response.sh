@@ -29,12 +29,16 @@ RETRY_FILE="/tmp/claude-grade-retry-${SESSION_ID}"
 MAX_RETRIES=3
 
 # Resolve rubric path: project-local first (installed by /conejo-smith),
-# then user-global fallback. If neither exists, fail open — no rubric, no grade.
+# then user-global fallback. If neither exists, fail open — no rubric, no
+# grade — and warn once on stderr unless silenced.
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -f "$CLAUDE_PROJECT_DIR/CLAUDE.md" ]; then
     CLAUDE_MD="$CLAUDE_PROJECT_DIR/CLAUDE.md"
 elif [ -f "$HOME/.claude/CLAUDE.md" ]; then
     CLAUDE_MD="$HOME/.claude/CLAUDE.md"
 else
+    if [ "${CLAUDE_NO_RUBRIC_WARNING:-1}" != "0" ]; then
+        echo "grade-response: no CLAUDE.md rubric found at \$CLAUDE_PROJECT_DIR or ~/.claude — skipping. Set CLAUDE_NO_RUBRIC_WARNING=0 to silence." >&2
+    fi
     exit 0
 fi
 

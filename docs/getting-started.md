@@ -25,12 +25,10 @@ bash scripts/install.sh
 The installer will:
 
 1. Copy all 27 skills to `~/.claude/skills/`
-2. Bundle 7 hooks + the project-local settings fragment + the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (NOT into `~/.claude/hooks/`)
+2. Bundle 9 hooks + the project-local settings fragment + the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (NOT into `~/.claude/hooks/`)
 3. Optionally install the scheduler LaunchAgent (macOS only)
 
-`~/.claude/settings.json` and `~/.claude/CLAUDE.md` are **not modified** by the installer. To wire hooks and the rubric into a specific project, run `/conejo-smith` inside that project — it's the new entry point.
-
-To confirm the installation succeeded, open Claude Code in any project and type `/smith-help` (or `/conejo-smith`).
+`~/.claude/settings.json` and `~/.claude/CLAUDE.md` are **not modified** by the installer. To start using Smith on a project, open Claude Code in that project and run **`/conejo-smith` first** — it's the new entry point and wires up the project-local hooks and rubric. After it completes, use `/smith-new` for feature work or `/smith-help` to inspect every command.
 
 ### Uninstalling
 
@@ -44,7 +42,9 @@ This removes all Smith skills, hooks, and scheduler components. Your project vau
 
 ## First Run: Starting a Feature Workflow
 
-Open Claude Code in a project directory and run:
+Open Claude Code in a project directory. If this is the first time using Smith on this project, run `/conejo-smith` first — it bootstraps project-local hooks, rubric, and SpecKit scaffolding.
+
+Once the project is bootstrapped, start a feature workflow:
 
 ```
 /smith-new

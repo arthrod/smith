@@ -49,7 +49,7 @@ Same as above plus the macOS scheduler LaunchAgent and the project-local hook/te
 
 Open a project and run `/conejo-smith`. It will:
 
-1. Copy 7 hook scripts to `<project>/.claude/hooks/` and merge hook entries into `<project>/.claude/settings.json` (with backup).
+1. Copy hook scripts (currently 9) to `<project>/.claude/hooks/` and merge hook entries into `<project>/.claude/settings.json` (with backup).
 2. Drop the global rubric template into `<project>/CLAUDE.md` (with backup).
 3. Run the full SpecKit interview — codebase detection, intake doc, constitution, `.specify/` templates, agents, commands.
 
@@ -71,7 +71,7 @@ Then use `/smith-new`, `/smith-build`, `/smith-debug`, etc. as normal.
 | Reporting | `/smith-report`, `/smith-taskstoissues` | Client-facing reports and GitHub issue generation |
 | Meta | `/conejo-smith`, `/smith-speckit`, `/smith-constitution`, `/smith-migrate-specs`, `/smith-help` | Project bootstrap (project-local), legacy SpecKit-only init (formerly `/smith`), governance, reference |
 
-### Hooks (7)
+### Hooks (9)
 
 Hooks are no longer installed globally. `/conejo-smith` copies them into `<project>/.claude/hooks/` and merges entries into `<project>/.claude/settings.json` using `${CLAUDE_PROJECT_DIR}` paths.
 
@@ -79,6 +79,7 @@ Hooks are no longer installed globally. `/conejo-smith` copies them into `<proje
 |---|---|---|
 | `session-start-logger.sh` | SessionStart | Creates a session log in `.smith/vault/sessions/` |
 | `session-end-review.sh` | Stop | Reviews changes made during the session and prompts for spec updates |
+| `workflow-summary.sh` | Stop | Appends per-workflow token/cost/duration totals to the session log when a primary workflow completes |
 | `grade-response.sh` | Stop | Grades the turn against `<project>/CLAUDE.md` rubric via a Haiku critic; blocks the stop and forces a retry when score < 100 (up to 3 retries) |
 | `file-change-logger.sh` | PostToolUse (Write/Edit) | Logs every file change to the active session log |
 | `lint-on-save.sh` | PostToolUse (Write/Edit) | Runs the project linter on changed files |

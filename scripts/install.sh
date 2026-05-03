@@ -120,15 +120,17 @@ echo
 info "Smith will:"
 echo "  • Copy 27 skills → $CLAUDE_SKILLS_DIR/{smith-speckit,smith-*,conejo-smith}"
 echo "  • Bundle hooks + rubric + settings fragment into the conejo-smith skill"
-echo "    (assets sit under $CLAUDE_SKILLS_DIR/conejo-smith/ — copied INTO each"
-echo "     project only when you run /conejo-smith there)"
+echo "    as an OFFLINE FALLBACK ($CLAUDE_SKILLS_DIR/conejo-smith/). At runtime,"
+echo "    /conejo-smith downloads the latest from github.com/arthrod/smith and"
+echo "    only uses this bundle if the network clone fails."
 echo "  • Copy scheduler → $SMITH_HOME/scheduler/"
 echo
 echo "  Notes:"
 echo "    – ~/.claude/hooks/ is NOT modified."
 echo "    – ~/.claude/settings.json is NOT modified."
 echo "    – ~/.claude/CLAUDE.md is NOT modified."
-echo "    Project-local installation happens inside each repo via /conejo-smith."
+echo "    Project-local installation happens inside each repo via /conejo-smith,"
+echo "    which fetches assets from the smith repo at runtime by default."
 if [ "$IS_MACOS" = "1" ] && [ "${SMITH_SKIP_SCHEDULER:-0}" != "1" ]; then
     echo "  • Offer to install a macOS LaunchAgent for the daily scheduler"
 fi
@@ -222,7 +224,8 @@ ok "Smith installed successfully"
 echo
 echo "  Next steps:"
 echo "    1. Open Claude Code in any project"
-echo "    2. Run /conejo-smith to bootstrap that project (project-local hooks + rubric + SpecKit)"
+echo "    2. Run /conejo-smith to bootstrap that project. It will fetch the latest"
+echo "       hooks + rubric from github.com/arthrod/smith and copy them in locally."
 echo "    3. Then /smith-new for features, or /smith-help to see all commands"
 echo "    3. Session logs and vault state will be created in <project>/.smith/vault/"
 echo

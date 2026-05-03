@@ -67,13 +67,13 @@ Task files are JSON documents with fields for description, status, mode, priorit
 
 ## Hook Execution Model
 
-Hooks are registered in `~/.claude/settings.json` under the `hooks` key. Each entry specifies:
+In this fork, hooks are **project-local**. `/conejo-smith` copies the bundled hook scripts into `<project>/.claude/hooks/` and registers them in `<project>/.claude/settings.json` under the `hooks` key. The user-global `~/.claude/settings.json` and `~/.claude/hooks/` are intentionally not touched. Each registered entry specifies:
 
 - The event type (SessionStart, Stop, PreToolUse, PostToolUse, SubagentStop)
 - A matcher pattern (which tool or event name to match)
-- The path to a bash script in `~/.claude/hooks/`
+- The hook command, expressed as `bash "${CLAUDE_PROJECT_DIR}/.claude/hooks/<script>.sh"` so the path resolves to the active project's hooks directory regardless of the cwd inside the repo
 
-When Claude Code fires a matching event, it executes the corresponding bash script synchronously. PreToolUse hooks can block the tool call by returning a specific exit code. PostToolUse hooks run after the tool call completes and cannot block it.
+When Claude Code fires a matching event, it executes the corresponding bash script synchronously. PreToolUse hooks can block the tool call by returning a specific exit code. PostToolUse hooks run after the tool call completes and cannot block it. Stop hooks may exit `2` to block the stop and force a retry (used by `grade-response.sh` for rubric enforcement).
 
 See [Hooks Reference](hooks.md) for details on each hook.
 

@@ -4,7 +4,7 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start-logger.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start-logger.sh\"" }
         ]
       }
     ],
@@ -12,14 +12,14 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end-review.sh" },
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/workflow-summary.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end-review.sh\"" },
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/workflow-summary.sh\"" }
         ]
       },
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/grade-response.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/grade-response.sh\"" }
         ]
       }
     ],
@@ -27,19 +27,19 @@
       {
         "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/file-change-logger.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/file-change-logger.sh\"" }
         ]
       },
       {
         "matcher": "Write|Edit",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/lint-on-save.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/lint-on-save.sh\"" }
         ]
       },
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/metrics-tracker.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/metrics-tracker.sh\"" }
         ]
       }
     ],
@@ -47,7 +47,7 @@
       {
         "matcher": "Task",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/task-router.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/task-router.sh\"" }
         ]
       }
     ],
@@ -55,7 +55,7 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/subagent-vault-writeback.sh" }
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/subagent-vault-writeback.sh\"" }
         ]
       }
     ]

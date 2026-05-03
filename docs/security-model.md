@@ -14,7 +14,7 @@ The only network activity comes from Claude Code itself (communicating with the 
 
 ## Hook Security
 
-Hooks are bash scripts that Claude Code executes automatically at specific lifecycle events. Each hook is registered in `~/.claude/settings.json` and runs with your user permissions.
+Hooks are bash scripts that Claude Code executes automatically at specific lifecycle events. Each hook is registered in **`<project>/.claude/settings.json`** (project-local — `~/.claude/settings.json` is not modified by `/conejo-smith` or `scripts/install.sh`) and runs with your user permissions.
 
 ### What hooks can access
 
@@ -34,9 +34,9 @@ Hooks are bash scripts that Claude Code executes automatically at specific lifec
 | Event | When it fires | Hooks using it |
 |-------|--------------|----------------|
 | SessionStart | Claude Code session begins | session-start-logger |
-| Stop | Claude Code session ends | session-end-review |
+| Stop | Claude Code session ends | session-end-review, workflow-summary, grade-response |
 | PreToolUse | Before Claude executes a tool call | task-router |
-| PostToolUse | After Claude executes a tool call | file-change-logger, lint-on-save |
+| PostToolUse | After Claude executes a tool call | file-change-logger, lint-on-save, metrics-tracker |
 | SubagentStop | When a sub-agent completes | subagent-vault-writeback |
 
 See [Hooks Reference](hooks.md) for full details on each hook.

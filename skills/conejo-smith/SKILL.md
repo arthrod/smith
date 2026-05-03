@@ -1,12 +1,12 @@
 ---
 name: conejo-smith
-description: Project-local Smith bootstrap. Recommended entry point. Copies hooks, settings.json hook entries, the global CLAUDE.md rubric into the current repo, then delegates to /smith-speckit for the SpecKit interview — all confined to the current repo's .claude/ and project root. Nothing is written to ~/.claude/. Use when the user wants Smith on a project without polluting their global Claude config, or said "set up smith here", "install smith in this repo", "/conejo-smith", or "bootstrap this project with smith".
-argument-hint: [--preset flask-react|fastapi-next|cli-python|express-react] [--no-hooks] [--no-claude-md] [--yes]
+description: Project-local Smith installer. Recommended entry point. Downloads the latest hook scripts, settings fragment, and CLAUDE.md rubric from github.com/arthrod/smith at runtime, copies them into the current repo, then delegates to /smith-speckit for the SpecKit interview — all confined to <project>/.claude/ and the project root. Nothing is written to ~/.claude/. Use when the user wants Smith on a project without polluting their global Claude config, or said "set up smith here", "install smith in this repo", "/conejo-smith", or "bootstrap this project with smith".
+argument-hint: [--preset flask-react|fastapi-next|cli-python|express-react] [--no-hooks] [--no-claude-md] [--yes] [--ref <commit-or-tag>]
 ---
 
-# Conejo-Smith — Project-Local Smith Bootstrap
+# Conejo-Smith — Project-Local Smith Installer
 
-This is the **recommended entry point** for setting up Smith on a project. The legacy SpecKit-only skill (formerly `/smith`, now renamed to `/smith-speckit`) assumes hooks/settings/global-CLAUDE.md were already wired up by some other means; `conejo-smith` does both jobs in one invocation, **scoped to the current repo only**, and then delegates to `/smith-speckit` for the SpecKit interview.
+This is the **recommended entry point** for setting up Smith on a project. Acts as a self-contained installer: at invocation time it fetches the latest hook scripts, settings fragment, and rubric from `https://github.com/arthrod/smith`, copies them into `<project>/.claude/` and `<project>/CLAUDE.md`, then delegates to `/smith-speckit` for the full SpecKit interview.
 
 After running, the user's `~/.claude/` directory is unchanged. Everything Smith needs lives under `<project>/.claude/` and `<project>/CLAUDE.md`.
 
@@ -16,21 +16,62 @@ After running, the user's `~/.claude/` directory is unchanged. Everything Smith 
 
 ## Phase 0 — Pre-flight
 
-### 0.1 Locate skill assets
+### 0.1 Resolve source directory
 
-The skill bundles its own copies of the hook scripts, the project-local settings fragment, and the CLAUDE.md rubric template at install time:
+The skill resolves a **source directory** that contains a checkout of the smith repo. Hooks, settings fragment, and rubric template are read from that directory in Phase A.
 
+Resolution order (first match wins):
+
+1. **`$SMITH_SOURCE` env var** (developer/test override) — if set and points to a directory containing both `hooks/` and `settings/smith-settings-fragment-local.json`, use it directly. No clone, no copy.
+
+2. **Network clone** (default) — clone `https://github.com/arthrod/smith` shallowly into a temp dir and use it. Pinnable via `--ref <commit-or-tag>` argument or `$SMITH_REF` env var (default: `main`):
+
+   ```bash
+   SMITH_REPO_URL="${SMITH_REPO_URL:-https://github.com/arthrod/smith.git}"
+   SMITH_REF="${SMITH_REF:-main}"
+   # Honor --ref <X> from $ARGUMENTS if present (overrides $SMITH_REF).
+   SOURCE_DIR="$(mktemp -d -t conejo-smith-src.XXXXXX)"
+   trap 'rm -rf "$SOURCE_DIR"' EXIT
+   git clone --depth 1 --branch "$SMITH_REF" "$SMITH_REPO_URL" "$SOURCE_DIR" \
+       || { rm -rf "$SOURCE_DIR"; SOURCE_DIR=""; }
+   ```
+
+3. **Bundled fallback** — if the network clone fails AND `~/.claude/skills/conejo-smith/hooks/` was populated by `scripts/install.sh`, use that. The bundle path requires `hooks/`, `settings-fragment.json`, and `claude-md-template.md` to all be present:
+
+   ```bash
+   if [ -z "$SOURCE_DIR" ] \
+      && [ -d "$HOME/.claude/skills/conejo-smith/hooks" ] \
+      && [ -f "$HOME/.claude/skills/conejo-smith/settings-fragment.json" ] \
+      && [ -f "$HOME/.claude/skills/conejo-smith/claude-md-template.md" ]; then
+       # Treat the bundle as a flattened source layout (no nested settings/ dir).
+       SOURCE_DIR="$HOME/.claude/skills/conejo-smith"
+       SOURCE_LAYOUT=bundle
+   else
+       SOURCE_LAYOUT=repo
+   fi
+   ```
+
+4. **Abort** if neither network nor bundle yields a usable source. The error message MUST mention both reasons (network failure / missing bundle) and suggest one of: a working network connection, `bash scripts/install.sh` to seed the bundle, or `$SMITH_SOURCE=/path/to/local/checkout`.
+
+After resolution, **all reads in Phase A go through `$SOURCE_DIR`**. The two layouts differ in path:
+
+| Asset | repo layout | bundle layout |
+|---|---|---|
+| Hook scripts | `$SOURCE_DIR/hooks/*.sh` + `*.py` + `pricing.json` | `$SOURCE_DIR/hooks/*` (same) |
+| Settings fragment | `$SOURCE_DIR/settings/smith-settings-fragment-local.json` | `$SOURCE_DIR/settings-fragment.json` |
+| CLAUDE.md rubric | `$SOURCE_DIR/settings/claude-md-template.md` | `$SOURCE_DIR/claude-md-template.md` |
+
+Compute and remember:
+
+```bash
+HOOKS_SRC="$SOURCE_DIR/hooks"
+case "$SOURCE_LAYOUT" in
+  repo)   FRAGMENT="$SOURCE_DIR/settings/smith-settings-fragment-local.json"
+          TEMPLATE="$SOURCE_DIR/settings/claude-md-template.md" ;;
+  bundle) FRAGMENT="$SOURCE_DIR/settings-fragment.json"
+          TEMPLATE="$SOURCE_DIR/claude-md-template.md" ;;
+esac
 ```
-~/.claude/skills/conejo-smith/
-├── SKILL.md                 (this file)
-├── hooks/                   (7 hook scripts + workflow_summary_lib.py + pricing.json)
-├── settings-fragment.json   (project-local hook entries; uses ${CLAUDE_PROJECT_DIR})
-└── claude-md-template.md    (global rubric to drop at PROJECT/CLAUDE.md)
-```
-
-Verify all three asset paths exist. If any are missing, abort with:
-
-> Conejo-Smith assets missing under `~/.claude/skills/conejo-smith/`. Reinstall via `bash scripts/install.sh` from the smith repo (https://github.com/arthrod/smith).
 
 ### 0.2 Resolve target directories
 
@@ -45,9 +86,11 @@ Print exactly what will happen, then wait for confirmation (skip the wait if `--
 ```
 Conejo-Smith will install everything LOCALLY in this project (~/.claude is NOT touched):
 
-  PROJECT/.claude/hooks/                  7 hook scripts
+  Source:                                 [repo|bundle] from <github.com/arthrod/smith@<ref>|local bundle>
+
+  PROJECT/.claude/hooks/                  bundled hook scripts (.sh + workflow_summary_lib.py + pricing.json)
   PROJECT/.claude/settings.json           created or merged (hooks + permissions)
-  PROJECT/CLAUDE.md                       global rubric (existing file backed up)
+  PROJECT/CLAUDE.md                       rubric (existing file backed up)
   PROJECT/.specify/                       constitution + templates + scripts
   PROJECT/.claude/commands/               smith.* slash commands
   PROJECT/.claude/agents/                 review agents (architect, senior-qa, …)
@@ -69,12 +112,14 @@ This is the part `/smith-speckit` does NOT do. Run these steps before the SpecKi
 
 ### A.1 Copy hooks → `PROJECT/.claude/hooks/`
 
+`$HOOKS_SRC` was resolved in Phase 0.1.
+
 ```bash
 mkdir -p .claude/hooks
 # Copy everything: .sh scripts, workflow_summary_lib.py (sourced by
 # workflow-summary.sh), and pricing.json. The lib MUST travel with the
 # scripts so workflow-summary.sh can locate it via SCRIPT_DIR fallback.
-cp ~/.claude/skills/conejo-smith/hooks/* .claude/hooks/
+cp "$HOOKS_SRC"/* .claude/hooks/
 chmod +x .claude/hooks/*.sh
 ```
 
@@ -82,11 +127,10 @@ Skip entirely if `--no-hooks` is set. The hook scripts are pure shell and contai
 
 ### A.2 Merge hook entries into `PROJECT/.claude/settings.json`
 
-The bundled `settings-fragment.json` uses `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` so hooks resolve to *this* project regardless of cwd inside the repo.
+The settings fragment uses `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` so hooks resolve to *this* project regardless of cwd inside the repo. `$FRAGMENT` was resolved in Phase 0.1.
 
 ```bash
 mkdir -p .claude
-FRAGMENT="$HOME/.claude/skills/conejo-smith/settings-fragment.json"
 
 if [ -f .claude/settings.json ]; then
     cp .claude/settings.json ".claude/settings.json.bak-$(date +%Y%m%d-%H%M%S)"
@@ -98,7 +142,10 @@ if [ -f .claude/settings.json ]; then
         ($fragment.hooks // {}) as $fh |
         (($eh | to_entries) + ($fh | to_entries))
         | group_by(.key)
-        | map({key: .[0].key, value: (map(.value) | add)})
+        | map({
+            key: .[0].key,
+            value: ((map(.value) | add) | unique_by(tojson))
+          })
         | from_entries
       )
     ' .claude/settings.json "$FRAGMENT" > .claude/settings.json.tmp
@@ -112,8 +159,9 @@ Skip entirely if `--no-hooks` is set.
 
 ### A.3 Drop global CLAUDE.md rubric
 
+`$TEMPLATE` was resolved in Phase 0.1.
+
 ```bash
-TEMPLATE="$HOME/.claude/skills/conejo-smith/claude-md-template.md"
 if [ -f CLAUDE.md ]; then
     cp CLAUDE.md "CLAUDE.md.bak-$(date +%Y%m%d-%H%M%S)"
 fi
@@ -149,7 +197,7 @@ Read that file directly and execute its **Phase 1 through Phase 5** verbatim, wi
 
 ### Adjustments vs. `/smith-speckit`
 
-1. **Phase 0 (Locate Skill Assets)** in the smith-speckit SKILL.md is already satisfied — the smith-speckit skill assets must exist alongside conejo-smith for Phase B to work. If `~/.claude/skills/smith-speckit/templates/` is missing, abort with the same message smith-speckit would print.
+1. **Phase 0 (Locate Skill Assets)** in the smith-speckit SKILL.md — try `~/.claude/skills/smith-speckit/` first (the install.sh-managed copy). If that directory is missing AND the runtime source dir from Phase 0.1 is in `repo` layout, treat `$SOURCE_DIR/skills/smith-speckit/` as the smith-speckit asset root for the duration of Phase B (the freshly-cloned repo carries its own copy). If neither path exists, abort with the same message smith-speckit would print.
 
 2. **Phase 4.3 (Generate CLAUDE.md)** — `CLAUDE.md` already exists from A.3. Do NOT overwrite. Instead, **append** the project-specific sections (Project Overview, Tech Stack, Architecture, SpecKit Workflow, etc.) below the existing rubric content, separated by a clear `\n\n---\n\n` divider and a `# Project-Specific Configuration` heading.
 
@@ -168,7 +216,7 @@ Read that file directly and execute its **Phase 1 through Phase 5** verbatim, wi
    mv .claude/settings.json.tmp .claude/settings.json
    ```
 
-4. **Phase 5 (Verification report)** — append a "Project-Local Hooks" section to the report listing the 7 hooks now active in `<project>/.claude/hooks/` and noting that `~/.claude/` was untouched.
+4. **Phase 5 (Verification report)** — append a "Project-Local Hooks" section to the report listing the hooks now active in `<project>/.claude/hooks/` (count derived from the actual settings fragment) and noting that `~/.claude/` was untouched.
 
 Everything else from the smith SKILL.md (codebase detection, intake document, one-question-at-a-time interview, constitution generation, monorepo handling, command/agent copies, `.gitignore` entries) runs unchanged.
 
