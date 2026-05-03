@@ -25,8 +25,9 @@ bash scripts/install.sh
 The installer will:
 
 1. Copy all 27 skills to `~/.claude/skills/`
-2. Bundle 9 hooks + the project-local settings fragment + the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (NOT into `~/.claude/hooks/`)
-3. Optionally install the scheduler LaunchAgent (macOS only)
+2. Bundle 9 hooks + the project-local settings fragment + the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (offline fallback only — `/conejo-smith` downloads fresh from the repo by default)
+
+The scheduler LaunchAgent is **not** installed by `scripts/install.sh`. To enable it, run `/conejo-smith` inside any project and answer Y at the scheduler prompt (or pass `--with-scheduler`). Defaults to disabled.
 
 `~/.claude/settings.json` and `~/.claude/CLAUDE.md` are **not modified** by the installer. To start using Smith on a project, open Claude Code in that project and run **`/conejo-smith` first** — it's the new entry point and wires up the project-local hooks and rubric. After it completes, use `/smith-new` for feature work or `/smith-help` to inspect every command.
 

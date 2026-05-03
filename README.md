@@ -37,13 +37,13 @@ This is the fastest path — it copies all 27 Smith skills into `~/.claude/skill
 
 **To verify:** open Claude Code and type `/conejo-smith` — if it autocompletes, you're set.
 
-### Install via the bundled installer (skills + scheduler; hooks bundled into the skill)
+### Install via the bundled installer (skills only; hooks bundled into the skill as offline fallback)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/arthrod/smith/main/scripts/install.sh | bash
 ```
 
-Same as above plus the macOS scheduler LaunchAgent and the project-local hook/template assets bundled into the `conejo-smith` skill directory. **The installer no longer touches `~/.claude/settings.json`, `~/.claude/hooks/`, or `~/.claude/CLAUDE.md`** — those are project-local now and `/conejo-smith` installs them only when you run it inside a repo.
+Copies all 27 skills and bundles project-local hook/template assets into the `conejo-smith` skill directory as an offline fallback (the skill downloads fresh from the repo at runtime by default). **The installer no longer touches `~/.claude/settings.json`, `~/.claude/hooks/`, or `~/.claude/CLAUDE.md`**, and **does not install the scheduler LaunchAgent** — those are opt-in via `/conejo-smith` inside a repo.
 
 ### First run
 
@@ -51,7 +51,8 @@ Open a project and run `/conejo-smith`. It will:
 
 1. Copy hook scripts (currently 9) to `<project>/.claude/hooks/` and merge hook entries into `<project>/.claude/settings.json` (with backup).
 2. Drop the global rubric template into `<project>/CLAUDE.md` (with backup).
-3. Run the full SpecKit interview — codebase detection, intake doc, constitution, `.specify/` templates, agents, commands.
+3. Ask whether to enable the global Smith scheduler (default: N — see [docs/scheduler.md](docs/scheduler.md) for what it does and when you'd want it). Pass `--with-scheduler` to skip the prompt.
+4. Run the full SpecKit interview — codebase detection, intake doc, constitution, `.specify/` templates, agents, commands.
 
 Then use `/smith-new`, `/smith-build`, `/smith-debug`, etc. as normal.
 
@@ -151,13 +152,12 @@ cd smith
 
 ### What the installer does
 
-The installer is a **one-time global skill install** — skills go to `~/.claude/skills/`, the scheduler goes to `~/.smith/scheduler/`. **Nothing else in `~/.claude/` is touched.**
+The installer is a **one-time global skill install** — skills go to `~/.claude/skills/`. **Nothing else in `~/.claude/` is touched, and the scheduler LaunchAgent is NOT installed by this script.**
 
 - Copies all 27 skills to `~/.claude/skills/`
-- Bundles hooks, the project-local settings fragment, and the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (assets the skill copies into each project on demand)
-- Optionally installs the macOS scheduler LaunchAgent
+- Bundles hooks, the project-local settings fragment, and the CLAUDE.md rubric template into `~/.claude/skills/conejo-smith/` (offline fallback only — `/conejo-smith` downloads fresh from the repo at runtime by default)
 
-The installer is idempotent — re-run to update skills.
+The installer is idempotent — re-run to update skills. The scheduler is opt-in via `/conejo-smith` (or `--with-scheduler` for non-interactive opt-in).
 
 After installing, run `/conejo-smith` once inside each project to complete **per-project initialization**: copying hooks into `<project>/.claude/hooks/`, merging hook entries into `<project>/.claude/settings.json`, dropping the rubric into `<project>/CLAUDE.md`, and scaffolding the vault, bank, ledger, `.specify/` templates, constitution, and project-specific CLAUDE.md sections.
 
@@ -173,7 +173,7 @@ cd /path/to/smith && git pull && ./scripts/install.sh -y
 ./scripts/uninstall.sh
 ```
 
-This removes skills, hooks, and the scheduler LaunchAgent. It restores your original `settings.json` from the backup created during install.
+This removes skills, any legacy hooks left in `~/.claude/hooks/`, and the scheduler LaunchAgent (if you'd enabled it). Project-local `.smith/` directories are not touched.
 
 ---
 
@@ -195,8 +195,7 @@ All configuration is through environment variables. Everything is optional — S
 |---|---|---|
 | `SMITH_HOME` | `~/.smith` | Scheduler and runtime state directory |
 | `CLAUDE_HOME` | `~/.claude` | Claude Code config directory |
-| `SMITH_SKIP_SCHEDULER` | (unset) | Set to `1` to skip the scheduler prompt during install |
-| `SMITH_ASSUME_YES` | (unset) | Set to `1` to auto-accept all install prompts |
+| `SMITH_ASSUME_YES` | (unset) | Set to `1` to auto-accept all install prompts. Does NOT enable the scheduler — the scheduler is only enabled via `/conejo-smith --with-scheduler`. |
 
 ---
 
