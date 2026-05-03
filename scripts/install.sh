@@ -163,10 +163,16 @@ ok "Installed $SKILL_COUNT skills"
 # ---------- bundle assets into the conejo-smith skill ----------
 # The conejo-smith skill copies these INTO each project on demand. They live
 # under the skill directory so the skill is self-contained and so re-running
-# install.sh keeps them in sync with the smith repo.
+# install.sh keeps them in sync with the smith repo. The bundle is OFFLINE
+# FALLBACK only — at invocation time /conejo-smith fetches from the repo.
 CONEJO_SKILL_DIR="$CLAUDE_SKILLS_DIR/conejo-smith"
+if [ ! -d "$CONEJO_SKILL_DIR" ]; then
+    err "conejo-smith skill missing from $CLAUDE_SKILLS_DIR — checkout at $REPO_ROOT looks incomplete."
+    err "Expected $REPO_ROOT/skills/conejo-smith/ to exist. Re-clone https://github.com/arthrod/smith and retry."
+    exit 1
+fi
 if [ -d "$CONEJO_SKILL_DIR" ]; then
-    info "Bundling project-local assets into $CONEJO_SKILL_DIR"
+    info "Bundling offline-fallback assets into $CONEJO_SKILL_DIR"
     mkdir -p "$CONEJO_SKILL_DIR/hooks"
     HOOK_COUNT=0
     for hook_src in "$REPO_ROOT"/hooks/*.sh; do
@@ -187,8 +193,6 @@ if [ -d "$CONEJO_SKILL_DIR" ]; then
     cp "$REPO_ROOT/settings/claude-md-template.md" \
        "$CONEJO_SKILL_DIR/claude-md-template.md"
     ok "Bundled $HOOK_COUNT hooks + settings fragment + rubric into conejo-smith skill"
-else
-    warn "conejo-smith skill not found at $CONEJO_SKILL_DIR — bundle step skipped"
 fi
 
 # ---------- copy scheduler ----------
